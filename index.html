@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixels Live Tools Hub</title>
+    <style>
+        body { background-color: #0a0c14; color: #f3f4f6; font-family: sans-serif; padding: 30px; }
+        .header { max-width: 800px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center; }
+        .title { font-size: 20px; font-weight: bold; color: #8b5cf6; }
+        .status { background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 6px 12px; border-radius: 20px; font-size: 12px; }
+        .card { max-width: 800px; margin: 0 auto; background: #121624; border: 1px solid #1e2438; border-radius: 12px; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { color: #9ca3af; padding: 12px; border-bottom: 1px solid #1e2438; font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid #1e2438; }
+        .price { color: #f59e0b; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">Pixels Live Market Hub</div>
+        <div class="status" id="status-text">Conectando...</div>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Preco de Mercado</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-itens">
+                <tr><td>Blue Grumpkin Seed</td><td class="price" id="p-blue">Carregando...</td></tr>
+                <tr><td>Bronzenite Ore</td><td class="price" id="p-bronze">Carregando...</td></tr>
+                <tr><td>Muckchuck Mead</td><td class="price" id="p-mead">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function atualizarPrecos() {
+            const statusEl = document.getElementById('status-text');
+            try {
+                // Chamada para o seu backend no Render
+                const res = await fetch('https://pixels-backend-l21o.onrender.com/prices');
+                if (res.ok) {
+                    const dados = res.json ? await res.json() : null;
+                    
+                    // Se os dados vierem em formato de objeto com chaves diretas (ex: dados["itm_..."]) ou dentro de .items
+                    const precos = dados.items || dados;
+
+                    if (precos) {
+                        // Verificando chaves comuns ou parciais para garantir que acha o item
+                        const bluePrice = precos["itm_blueGrumpkinSeed"]?.price || precos["blueGrumpkinSeed"]?.price;
+                        const bronzePrice = precos["itm_bronzeniteOre"]?.price || precos["bronzeniteOre"]?.price;
+                        const meadPrice = precos["itm_muckchuckMead"]?.price || precos["muckchuckMead"]?.price;
+
+                        if (bluePrice !== undefined) document.getElementById('p-blue').innerText = bluePrice + " Coins";
+                        if (bronzePrice !== undefined) document.getElementById('p-bronze').innerText = bronzePrice + " Coins";
+                        if (meadPrice !== undefined) document.getElementById('p-mead').innerText = meadPrice + " Coins";
+                    }
+                }
+                const hora = new Date().toLocaleTimeString('pt-BR');
+                statusEl.innerText = "Atualizado às " + hora;
+            } catch (e) {
+                statusEl.innerText = "Erro ao conectar";
+            }
+        }
+
+        atualizarPrecos();
+        setInterval(atualizarPrecos, 15000); // Atualiza a cada 15 segundos
+    </script>
+</body>
+</html>
