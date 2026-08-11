@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+
+// Libera o acesso para qualquer site (Vercel, local, etc)
+app.use(cors({ origin: '*' }));
 
 let cotacoesAtivas = {
   "itm_blueGrumpkinSeed": { name: "Blue Grumpkin Seed", price: 384 },
@@ -23,19 +25,23 @@ async function atualizarMercadoPixels() {
       const data = await response.json();
       if (Array.isArray(data)) {
         data.forEach(item => {
-          if (cotacoesAtivas[item.itemId || item.id]) {
-            cotacoesAtivas[item.itemId || item.id].price = item.price || item.sellPrice || item.cost;
+          const id = item.itemId || item.id;
+          if (cotacoesAtivas[id]) {
+            cotacoesAtivas[id].price = item.price || item.sellPrice || item.cost || cotacoesAtivas[id].price;
           }
         });
       }
     }
-  } catch (err) {}
+  } catch (err) {
+    console.log("Aguardando conexao com Pixels...", err.message);
+  }
 }
 
 setInterval(atualizarMercadoPixels, 15000);
 atualizarMercadoPixels();
 
 app.get('/prices', (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
   res.json({
     status: "online",
     updatedAt: new Date().toISOString(),
@@ -43,5 +49,5 @@ app.get('/prices', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Servidor ativado na porta ${PORT}`));
