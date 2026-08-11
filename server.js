@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-
-// Libera o acesso para qualquer site (Vercel, local, etc)
 app.use(cors({ origin: '*' }));
 
 let cotacoesAtivas = {
@@ -14,30 +12,41 @@ let cotacoesAtivas = {
 
 async function atualizarMercadoPixels() {
   try {
-    const response = await fetch('https://pixels-server.pixels.xyz/game/market/items', {
+    // API pública do mercado do Pixels com fallback
+    const res = await fetch('https://pixels-server.pixels.xyz/game/market/items', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         'Accept': 'application/json'
       }
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        data.forEach(item => {
-          const id = item.itemId || item.id;
-          if (cotacoesAtivas[id]) {
-            cotacoesAtivas[id].price = item.price || item.sellPrice || item.cost || cotacoesAtivas[id].price;
+    if (res.ok) {
+      const data = await res.json();
+      const itens = Array.isArray(data) ? data : (data.items || data.data || []);
+
+      itens.forEach(item => {
+        const itemId = item.itemId || item.id || item.name;
+        
+        // Mapeamento de IDs do mercado
+        if (itemId) {
+          const strId = String(itemId).toLowerCase();
+          
+          if (strId.includes('grumpkin')) {
+            cotacoesAtivas["itm_blueGrumpkinSeed"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_blueGrumpkinSeed"].price;
+          } else if (strId.includes('bronze')) {
+            cotacoesAtivas["itm_bronzeniteOre"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_bronzeniteOre"].price;
+          } else if (strId.includes('mead')) {
+            cotacoesAtivas["itm_muckchuckMead"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_muckchuckMead"].price;
           }
-        });
-      }
+        }
+      });
     }
   } catch (err) {
-    console.log("Aguardando conexao com Pixels...", err.message);
+    console.log("Erro na busca:", err.message);
   }
 }
 
-setInterval(atualizarMercadoPixels, 15000);
+setInterval(atualizarMercadoPixels, 10000);
 atualizarMercadoPixels();
 
 app.get('/prices', (req, res) => {
@@ -50,4 +59,4 @@ app.get('/prices', (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor ativado na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
