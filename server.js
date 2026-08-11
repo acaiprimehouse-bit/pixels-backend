@@ -4,49 +4,14 @@ const cors = require('cors');
 const app = express();
 app.use(cors({ origin: '*' }));
 
+// Tabela de itens monitorados
 let cotacoesAtivas = {
-  "itm_blueGrumpkinSeed": { name: "Blue Grumpkin Seed", price: 384 },
+  "itm_blueGrumpkinSeed": { name: "Blue Grumpkin Seed", price: 380 },
   "itm_bronzeniteOre": { name: "Bronzenite Ore", price: 114 },
   "itm_muckchuckMead": { name: "Muckchuck Mead", price: 2730 }
 };
 
-async function atualizarMercadoPixels() {
-  try {
-    const response = await fetch('https://pixels-server.pixels.xyz/game/market/items', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const lista = Array.isArray(data) ? data : (data.items || data.data || []);
-
-      lista.forEach(item => {
-        const id = String(item.itemId || item.id || item.name || '').toLowerCase();
-        const preco = item.price || item.sellPrice || item.lowestPrice || item.cost;
-
-        if (preco && preco > 0) {
-          if (id.includes('grumpkin') || id.includes('blue')) {
-            cotacoesAtivas["itm_blueGrumpkinSeed"].price = preco;
-          } else if (id.includes('bronze')) {
-            cotacoesAtivas["itm_bronzeniteOre"].price = preco;
-          } else if (id.includes('mead') || id.includes('muckchuck')) {
-            cotacoesAtivas["itm_muckchuckMead"].price = preco;
-          }
-        }
-      });
-    }
-  } catch (err) {
-    console.log("Aguardando dados do Pixels...", err.message);
-  }
-}
-
-// Atualiza a cada 3 segundos
-setInterval(atualizarMercadoPixels, 3000);
-atualizarMercadoPixels();
-
+// Rota para o seu site consultar os preços
 app.get('/prices', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
   const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -56,6 +21,28 @@ app.get('/prices', (req, res) => {
     updatedAt: agora,
     items: cotacoesAtivas
   });
+});
+
+// NOVA ROTA: Permite atualizar o preço instantaneamente via link ou requisição
+// Exemplo de uso no navegador: https://seu-backend.onrender.com/update?item=grumpkin&price=385
+app.get('/update', (req, res) => {
+  const { item, price } = req.query;
+  const novoPreco = Number(price);
+
+  if (!item || !novoPreco) {
+    return res.status(400).json({ erro: "Use o formato: /update?item=grumpkin&price=385" });
+  }
+
+  const chave = item.toLowerCase();
+  if (chave.includes('grumpkin')) {
+    cotacoesAtivas["itm_blueGrumpkinSeed"].price = novoPreco;
+  } else if (chave.includes('bronze')) {
+    cotacoesAtivas["itm_bronzeniteOre"].price = novoPreco;
+  } else if (chave.includes('mead') || chave.includes('muckchuck')) {
+    cotacoesAtivas["itm_muckchuckMead"].price = novoPreco;
+  }
+
+  res.json({ sucesso: true, itensAtualizados: cotacoesAtivas });
 });
 
 const PORT = process.env.PORT || 10000;
