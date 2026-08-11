@@ -12,37 +12,31 @@ let cotacoesAtivas = {
 
 async function atualizarMercadoPixels() {
   try {
-    // API pública do mercado do Pixels com fallback
-    const res = await fetch('https://pixels-server.pixels.xyz/game/market/items', {
+    const response = await fetch('https://pixels-server.pixels.xyz/game/market/items', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json'
       }
     });
 
-    if (res.ok) {
-      const data = await res.json();
+    if (response.ok) {
+      const data = await response.json();
       const itens = Array.isArray(data) ? data : (data.items || data.data || []);
 
       itens.forEach(item => {
-        const itemId = item.itemId || item.id || item.name;
+        const itemId = String(item.itemId || item.id || item.name || '').toLowerCase();
         
-        // Mapeamento de IDs do mercado
-        if (itemId) {
-          const strId = String(itemId).toLowerCase();
-          
-          if (strId.includes('grumpkin')) {
-            cotacoesAtivas["itm_blueGrumpkinSeed"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_blueGrumpkinSeed"].price;
-          } else if (strId.includes('bronze')) {
-            cotacoesAtivas["itm_bronzeniteOre"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_bronzeniteOre"].price;
-          } else if (strId.includes('mead')) {
-            cotacoesAtivas["itm_muckchuckMead"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_muckchuckMead"].price;
-          }
+        if (itemId.includes('grumpkin')) {
+          cotacoesAtivas["itm_blueGrumpkinSeed"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_blueGrumpkinSeed"].price;
+        } else if (itemId.includes('bronze')) {
+          cotacoesAtivas["itm_bronzeniteOre"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_bronzeniteOre"].price;
+        } else if (itemId.includes('mead')) {
+          cotacoesAtivas["itm_muckchuckMead"].price = item.price || item.sellPrice || item.lowestPrice || cotacoesAtivas["itm_muckchuckMead"].price;
         }
       });
     }
   } catch (err) {
-    console.log("Erro na busca:", err.message);
+    console.log("Aguardando atualizacao...", err.message);
   }
 }
 
@@ -51,12 +45,15 @@ atualizarMercadoPixels();
 
 app.get('/prices', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
+  
+  const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
   res.json({
     status: "online",
-    updatedAt: new Date().toISOString(),
+    updatedAt: agora,
     items: cotacoesAtivas
   });
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor ativado na porta ${PORT}`));
