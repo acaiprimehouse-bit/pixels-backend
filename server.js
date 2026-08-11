@@ -14,53 +14,37 @@ async function atualizarMercadoPixels() {
   try {
     const response = await fetch('https://api.pixelore.wiki/api/market-data', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'application/json',
-        'Referer': 'https://pixelore.wiki/'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://pixelore.wiki/lookup/profit',
+        'Origin': 'https://pixelore.wiki',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
     });
 
     if (response.ok) {
       const data = await response.json();
-      // Varre a resposta para achar os itens na estrutura da API do Pixelore
-      const lista = Array.isArray(data) ? data : (data.items || data.data || data.market || []);
-
-      if (Array.isArray(lista)) {
-        lista.forEach(item => {
-          const itemId = String(item.itemId || item.id || item.name || '').toLowerCase();
-          const valorAtual = item.price || item.sellPrice || item.lowestPrice || item.cost;
-
-          if (valorAtual && valorAtual > 0) {
-            if (itemId.includes('grumpkin') || itemId.includes('blue')) {
-              cotacoesAtivas["itm_blueGrumpkinSeed"].price = valorAtual;
-            } else if (itemId.includes('bronze')) {
-              cotacoesAtivas["itm_bronzeniteOre"].price = valorAtual;
-            } else if (itemId.includes('mead') || itemId.includes('muckchuck')) {
-              cotacoesAtivas["itm_muckchuckMead"].price = valorAtual;
-            }
-          }
-        });
+      if (data && typeof data === 'object') {
+          if (data.grumpkin) cotacoesAtivas["itm_blueGrumpkinSeed"].price = data.grumpkin;
+          if (data.bronze) cotacoesAtivas["itm_bronzeniteOre"].price = data.bronze;
+          if (data.mead) cotacoesAtivas["itm_muckchuckMead"].price = data.mead;
       }
     }
   } catch (err) {
-    console.log("Erro ao buscar dados:", err.message);
+    console.log("Aguardando atualização...");
   }
 }
 
-// Atualiza a cada 3 segundos
-setInterval(atualizarMercadoPixels, 3000);
+setInterval(atualizarMercadoPixels, 10000);
 atualizarMercadoPixels();
 
 app.get('/prices', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-
   res.json({
-    status: "online",
-    updatedAt: agora,
+    updatedAt: new Date().toLocaleTimeString("pt-BR"),
     items: cotacoesAtivas
   });
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT);
